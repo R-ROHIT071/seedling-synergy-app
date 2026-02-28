@@ -1,25 +1,57 @@
 import { motion } from "framer-motion";
-import { Users, Clock, ShoppingBag, Target } from "lucide-react";
+import { Users, Clock, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import PageLayout from "@/components/PageLayout";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
-const groupBuys = [
-  { id: "1", title: "Organic Fertilizer - Bulk Order", category: "Fertilizer", price: 450, targetQty: 500, currentQty: 320, deadline: "2026-03-15", participants: 24 },
-  { id: "2", title: "Drip Irrigation Kit", category: "Equipment", price: 2800, targetQty: 100, currentQty: 67, deadline: "2026-03-20", participants: 67 },
-  { id: "3", title: "Hybrid Wheat Seeds (10kg)", category: "Seeds", price: 1200, targetQty: 300, currentQty: 280, deadline: "2026-03-10", participants: 45 },
-  { id: "4", title: "Solar Water Pump", category: "Equipment", price: 15000, targetQty: 50, currentQty: 18, deadline: "2026-04-01", participants: 18 },
-  { id: "5", title: "Neem Pesticide - 5L", category: "Pesticide", price: 380, targetQty: 400, currentQty: 350, deadline: "2026-03-08", participants: 52 },
-  { id: "6", title: "Bio Compost Pack", category: "Fertilizer", price: 250, targetQty: 600, currentQty: 150, deadline: "2026-04-15", participants: 30 },
+const defaultGroups = [
+  { id: "1", title: "Hybrid Tomato Seeds", category: "Seeds", original_price: 850, group_price: 599, discount: 30, target_qty: 10, current_qty: 7, deadline: "2026-03-15", location: "Maharashtra, Karnataka", specs: "500g packet", image: null, creator_id: "" },
+  { id: "2", title: "Organic NPK Fertilizer", category: "Fertilizer", original_price: 1200, group_price: 840, discount: 30, target_qty: 20, current_qty: 14, deadline: "2026-03-20", location: "Punjab, Haryana", specs: "25kg bag", image: null, creator_id: "" },
+  { id: "3", title: "Drip Irrigation Kit", category: "Equipment", original_price: 2800, group_price: 1960, discount: 30, target_qty: 15, current_qty: 9, deadline: "2026-04-01", location: "Gujarat, Rajasthan", specs: "1 acre kit", image: null, creator_id: "" },
+  { id: "4", title: "Neem Pesticide 5L", category: "Pesticide", original_price: 550, group_price: 385, discount: 30, target_qty: 30, current_qty: 22, deadline: "2026-03-10", location: "Tamil Nadu, AP", specs: "5 litre can", image: null, creator_id: "" },
+  { id: "5", title: "Solar Water Pump", category: "Equipment", original_price: 15000, group_price: 10500, discount: 30, target_qty: 8, current_qty: 3, deadline: "2026-04-15", location: "UP, MP", specs: "2HP pump", image: null, creator_id: "" },
+  { id: "6", title: "Bio Compost Pack", category: "Fertilizer", original_price: 400, group_price: 280, discount: 30, target_qty: 25, current_qty: 18, deadline: "2026-03-25", location: "Maharashtra", specs: "50kg pack", image: null, creator_id: "" },
 ];
 
 const categories = ["All", "Seeds", "Fertilizer", "Equipment", "Pesticide"];
 
-import { useState } from "react";
-
 const GroupBuy = () => {
   const [filter, setFilter] = useState("All");
-  const filtered = filter === "All" ? groupBuys : groupBuys.filter((g) => g.category === filter);
+  const [groups, setGroups] = useState(defaultGroups);
+  const [joining, setJoining] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const { data } = await supabase.from("group_buys").select("*").order("created_at", { ascending: false });
+      if (data && data.length > 0) setGroups(data as any);
+    };
+    fetchGroups();
+  }, []);
+
+  const filtered = filter === "All" ? groups : groups.filter((g) => g.category === filter);
+
+  const handleJoin = async (groupId: string) => {
+    if (!user) {
+      toast({ title: "Please log in", description: "You need to be logged in to join a group buy.", variant: "destructive" });
+      return;
+    }
+    setJoining(groupId);
+    const { error } = await supabase.from("group_buy_participants").insert({ group_buy_id: groupId, user_id: user.id, quantity: 1 });
+    setJoining(null);
+    if (error?.code === "23505") {
+      toast({ title: "Already joined!", description: "You're already part of this group buy." });
+    } else if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Joined! 🎉", description: "You've successfully joined this group buy." });
+    }
+  };
 
   return (
     <PageLayout>
@@ -35,48 +67,42 @@ const GroupBuy = () => {
 
           <div className="flex flex-wrap justify-center gap-2 mb-10">
             {categories.map((cat) => (
-              <Button key={cat} variant={filter === cat ? "default" : "outline"} size="sm" onClick={() => setFilter(cat)}>
-                {cat}
-              </Button>
+              <Button key={cat} variant={filter === cat ? "default" : "outline"} size="sm" onClick={() => setFilter(cat)}>{cat}</Button>
             ))}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((item, i) => {
-              const progress = (item.currentQty / item.targetQty) * 100;
+              const progress = (item.current_qty / item.target_qty) * 100;
               const daysLeft = Math.max(0, Math.ceil((new Date(item.deadline).getTime() - Date.now()) / 86400000));
               return (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="p-6 rounded-xl bg-card border border-border shadow-card hover:shadow-elevated transition-shadow"
-                >
+                <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+                  className="p-6 rounded-xl bg-card border border-border shadow-card hover:shadow-elevated transition-shadow">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground font-medium">
-                      {item.category}
-                    </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {daysLeft}d left
-                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground font-medium">{item.category}</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {daysLeft}d left</span>
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">{item.title}</h3>
-                  <div className="text-2xl font-bold text-primary mb-4">₹{item.price}</div>
+                  <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
+                  {item.location && <p className="text-xs text-muted-foreground mb-2">{item.location}</p>}
+                  <div className="flex items-baseline gap-2 mb-4">
+                    <span className="text-2xl font-bold text-primary">₹{item.group_price}</span>
+                    <span className="text-sm text-muted-foreground line-through">₹{item.original_price}</span>
+                    <span className="text-xs text-primary font-medium">{item.discount}% off</span>
+                  </div>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{item.currentQty}/{item.targetQty} units</span>
+                      <span>{item.current_qty}/{item.target_qty} members</span>
                       <span>{Math.round(progress)}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {item.participants} joined
-                    </span>
-                    <Button size="sm">Join Now</Button>
+                    <span className="text-xs text-muted-foreground">{item.specs}</span>
+                    <Button size="sm" onClick={() => handleJoin(item.id)} disabled={joining === item.id}>
+                      {joining === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Now"}
+                    </Button>
                   </div>
                 </motion.div>
               );

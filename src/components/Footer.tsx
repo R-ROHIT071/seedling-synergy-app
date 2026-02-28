@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Sprout, Mail, Phone, MapPin } from "lucide-react";
+import NewsletterForm from "./NewsletterForm";
 
 const Footer = () => {
   return (
@@ -14,6 +15,10 @@ const Footer = () => {
             <p className="text-sm opacity-70">
               Empowering farmers with AI-powered solutions for a sustainable agricultural future.
             </p>
+            <div className="pt-2">
+              <p className="text-sm font-medium mb-2">Subscribe to our newsletter</p>
+              <NewsletterForm />
+            </div>
           </div>
 
           <div>
@@ -39,18 +44,9 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Contact</h4>
             <div className="space-y-3 text-sm opacity-70">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <span>support@krishimitra.in</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>+91 1800-XXX-XXXX</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>New Delhi, India</span>
-              </div>
+              <div className="flex items-center gap-2"><Mail className="h-4 w-4" /><span>support@krishimitra.in</span></div>
+              <div className="flex items-center gap-2"><Phone className="h-4 w-4" /><span>+91 1800-XXX-XXXX</span></div>
+              <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /><span>New Delhi, India</span></div>
             </div>
           </div>
         </div>

@@ -1,13 +1,12 @@
 import { motion } from "framer-motion";
-import { ShieldCheck, Upload, CheckCircle, Clock, Video, Award, HelpCircle } from "lucide-react";
+import { ShieldCheck, Upload, CheckCircle, Clock, Video, Award, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageLayout from "@/components/PageLayout";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useState, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const steps = [
   { icon: Video, title: "Record Your Farm", description: "Take a short video tour of your farm showing crops and facilities." },
@@ -32,6 +31,72 @@ const faqs = [
 ];
 
 const Verify = () => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validTypes = ["video/mp4", "video/quicktime", "video/x-msvideo"];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: "Invalid format", description: "Please upload MP4, MOV, or AVI files.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 100MB.", variant: "destructive" });
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const handleUpload = async () => {
+    if (!user) {
+      toast({ title: "Please log in", description: "You need to be logged in to upload a verification video.", variant: "destructive" });
+      return;
+    }
+    if (!selectedFile) return;
+
+    setUploading(true);
+    // Simulate progress
+    const interval = setInterval(() => {
+      setUploadProgress((p) => Math.min(p + 10, 90));
+    }, 300);
+
+    const filePath = `${user.id}/${Date.now()}-${selectedFile.name}`;
+    const { error: uploadError } = await supabase.storage.from("verifications").upload(filePath, selectedFile);
+
+    clearInterval(interval);
+
+    if (uploadError) {
+      setUploading(false);
+      setUploadProgress(0);
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("verifications").getPublicUrl(filePath);
+
+    const { error: dbError } = await supabase.from("verifications").insert({
+      user_id: user.id,
+      video_url: urlData.publicUrl,
+    });
+
+    setUploadProgress(100);
+    setUploading(false);
+
+    if (dbError) {
+      toast({ title: "Error", description: dbError.message, variant: "destructive" });
+    } else {
+      toast({ title: "Uploaded! 🎉", description: "Your verification video has been submitted for review." });
+      setSelectedFile(null);
+      setUploadProgress(0);
+    }
+  };
+
   return (
     <PageLayout>
       <section className="py-16">
@@ -44,7 +109,6 @@ const Verify = () => {
             </p>
           </motion.div>
 
-          {/* Steps */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-20">
             {steps.map((step, i) => (
               <motion.div key={step.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="text-center">
@@ -57,17 +121,35 @@ const Verify = () => {
             ))}
           </div>
 
-          {/* Upload area + Benefits */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
             <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-              className="p-10 rounded-2xl border-2 border-dashed border-primary/30 bg-secondary/50 flex flex-col items-center justify-center text-center"
-            >
+              className="p-10 rounded-2xl border-2 border-dashed border-primary/30 bg-secondary/50 flex flex-col items-center justify-center text-center">
+              <input ref={fileRef} type="file" accept="video/mp4,video/quicktime,video/x-msvideo" className="hidden" onChange={handleFileSelect} />
               <Upload className="h-16 w-16 text-primary/40 mb-4" />
-              <h3 className="font-semibold text-foreground text-lg mb-2">Upload Your Verification Video</h3>
+              <h3 className="font-semibold text-foreground text-lg mb-2">
+                {selectedFile ? selectedFile.name : "Upload Your Verification Video"}
+              </h3>
               <p className="text-muted-foreground text-sm mb-6">
-                Drag and drop your video here, or click to browse. Max size: 100MB.
+                {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : "Drag and drop your video here, or click to browse. Max size: 100MB."}
               </p>
-              <Button>Select Video</Button>
+              {uploadProgress > 0 && (
+                <div className="w-full max-w-xs mb-4">
+                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-primary transition-all" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{uploadProgress}%</p>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => fileRef.current?.click()}>
+                  {selectedFile ? "Change File" : "Select Video"}
+                </Button>
+                {selectedFile && (
+                  <Button onClick={handleUpload} disabled={uploading}>
+                    {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</> : "Upload"}
+                  </Button>
+                )}
+              </div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
@@ -85,7 +167,6 @@ const Verify = () => {
             </motion.div>
           </div>
 
-          {/* FAQ */}
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="max-w-2xl mx-auto">
             <h3 className="text-2xl font-bold text-foreground mb-6 text-center">Frequently Asked Questions</h3>
             <Accordion type="single" collapsible className="w-full">
