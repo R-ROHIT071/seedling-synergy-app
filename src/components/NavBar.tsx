@@ -8,7 +8,8 @@ import NotificationCenter from "@/components/NotificationCenter";
 
 const navLinks = [
   { to: "/", label: "Home" },
-  { to: "/price-prediction", label: "Price Prediction" },
+  { to: "/marketplace", label: "Marketplace" },
+  { to: "/price-prediction", label: "Prices" },
   { to: "/group-buy", label: "Group Buy" },
   { to: "/learn", label: "Learn" },
   { to: "/verify", label: "Verify" },

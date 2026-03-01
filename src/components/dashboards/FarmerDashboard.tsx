@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingBag, Users, BookOpen, ShieldCheck, TrendingUp, BarChart3 } from "lucide-react";
+import { ShoppingBag, Users, BookOpen, ShieldCheck, TrendingUp, Store, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -37,6 +37,8 @@ const FarmerDashboard = () => {
   ];
 
   const quickLinks = [
+    { to: "/marketplace", icon: Store, label: "Marketplace" },
+    { to: "/orders", icon: Package, label: "My Orders" },
     { to: "/price-prediction", icon: TrendingUp, label: "Price Prediction" },
     { to: "/group-buy", icon: Users, label: "Join Group Buy" },
     { to: "/verify", icon: ShieldCheck, label: "Upload Verification" },

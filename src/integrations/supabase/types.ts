@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      cart_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string | null
+          quantity: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_buy_participants: {
         Row: {
           created_at: string
@@ -229,29 +261,50 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          delivery_date: string | null
           id: string
+          payment_id: string | null
+          payment_method: string | null
+          payment_status: string | null
           product_id: string
           quantity: number
+          shipping_address: Json | null
           status: string
           total: number
+          tracking_number: string | null
+          transaction_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          delivery_date?: string | null
           id?: string
+          payment_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           product_id: string
           quantity: number
+          shipping_address?: Json | null
           status?: string
           total: number
+          tracking_number?: string | null
+          transaction_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
+          delivery_date?: string | null
           id?: string
+          payment_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           product_id?: string
           quantity?: number
+          shipping_address?: Json | null
           status?: string
           total?: number
+          tracking_number?: string | null
+          transaction_id?: string | null
           user_id?: string
         }
         Relationships: [
