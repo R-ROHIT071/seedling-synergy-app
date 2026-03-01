@@ -12,6 +12,7 @@ import Verify from "./pages/Verify";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 import ChatBot from "./components/ChatBot";
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/notification-settings" element={<NotificationSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <ChatBot />

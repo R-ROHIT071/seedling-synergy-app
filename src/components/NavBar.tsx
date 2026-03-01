@@ -4,6 +4,7 @@ import { Menu, X, Sprout, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationCenter from "@/components/NotificationCenter";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -44,6 +45,7 @@ const NavBar = () => {
         <div className="hidden md:flex items-center gap-2">
           {user ? (
             <>
+              <NotificationCenter />
               <Button variant="ghost" asChild><Link to="/dashboard">Dashboard</Link></Button>
               <Button variant="outline" size="sm" onClick={handleSignOut}><LogOut className="h-4 w-4 mr-1" />Logout</Button>
             </>

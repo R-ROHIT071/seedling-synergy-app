@@ -157,6 +157,75 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          group_buy_notifications: boolean | null
+          id: string
+          order_notifications: boolean | null
+          price_alerts: boolean | null
+          system_notifications: boolean | null
+          updated_at: string | null
+          user_id: string
+          verification_notifications: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          group_buy_notifications?: boolean | null
+          id?: string
+          order_notifications?: boolean | null
+          price_alerts?: boolean | null
+          system_notifications?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          verification_notifications?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          group_buy_notifications?: boolean | null
+          id?: string
+          order_notifications?: boolean | null
+          price_alerts?: boolean | null
+          system_notifications?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          verification_notifications?: boolean | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
