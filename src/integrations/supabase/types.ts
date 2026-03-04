@@ -46,6 +46,45 @@ export type Database = {
           },
         ]
       }
+      disease_reports: {
+        Row: {
+          confidence: number
+          created_at: string
+          crop_name: string
+          diagnosis: string
+          id: string
+          image_url: string | null
+          preventive_measures: string | null
+          severity: string
+          treatment: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          crop_name: string
+          diagnosis: string
+          id?: string
+          image_url?: string | null
+          preventive_measures?: string | null
+          severity?: string
+          treatment?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          crop_name?: string
+          diagnosis?: string
+          id?: string
+          image_url?: string | null
+          preventive_measures?: string | null
+          severity?: string
+          treatment?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_buy_participants: {
         Row: {
           created_at: string
@@ -455,6 +494,27 @@ export type Database = {
           user_id?: string
           verified_at?: string | null
           video_url?: string
+        }
+        Relationships: []
+      }
+      weather_cache: {
+        Row: {
+          data: Json
+          fetched_at: string
+          id: string
+          location: string
+        }
+        Insert: {
+          data?: Json
+          fetched_at?: string
+          id?: string
+          location: string
+        }
+        Update: {
+          data?: Json
+          fetched_at?: string
+          id?: string
+          location?: string
         }
         Relationships: []
       }
