@@ -46,6 +46,11 @@ const App = () => (
             <Route path="/cart" element={<Cart />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
+            <Route path="/crop-health" element={<CropHealth />} />
+            <Route path="/yield-prediction" element={<YieldPrediction />} />
+            <Route path="/smart-recommendations" element={<SmartRecommendations />} />
+            <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
+            <Route path="/weather" element={<Weather />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <ChatBot />

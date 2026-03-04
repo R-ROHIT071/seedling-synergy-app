@@ -11,8 +11,9 @@ const navLinks = [
   { to: "/marketplace", label: "Marketplace" },
   { to: "/price-prediction", label: "Prices" },
   { to: "/group-buy", label: "Group Buy" },
+  { to: "/crop-health", label: "Crop Health" },
+  { to: "/weather", label: "Weather" },
   { to: "/learn", label: "Learn" },
-  { to: "/verify", label: "Verify" },
 ];
 
 const NavBar = () => {
