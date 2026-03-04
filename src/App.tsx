@@ -16,6 +16,11 @@ import Marketplace from "./pages/Marketplace";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import NotificationSettings from "./pages/NotificationSettings";
+import CropHealth from "./pages/CropHealth";
+import YieldPrediction from "./pages/YieldPrediction";
+import SmartRecommendations from "./pages/SmartRecommendations";
+import AdvancedAnalytics from "./pages/AdvancedAnalytics";
+import Weather from "./pages/Weather";
 import NotFound from "./pages/NotFound";
 import ChatBot from "./components/ChatBot";
 
