@@ -13,5 +13,50 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // For development: disable email confirmation requirement
+    // In production, remove this or set to false
+    flowType: import.meta.env.DEV ? 'implicit' : 'pkce'
   }
 });
+
+// Development utility: Make auth functions available globally for testing
+if (import.meta.env.DEV) {
+  (window as any).supabaseDev = {
+    // Function to confirm email for testing
+    confirmEmail: async (email: string) => {
+      try {
+        const { data, error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email,
+        });
+
+        if (error) {
+          console.error('Failed to resend confirmation:', error);
+          return { success: false, error: error.message };
+        }
+
+        console.log(`✅ Confirmation email sent to ${email}`);
+        console.log('📧 Check your email and click the confirmation link');
+        return { success: true, message: 'Confirmation email sent' };
+      } catch (err) {
+        console.error('Error:', err);
+        return { success: false, error: 'Unexpected error' };
+      }
+    },
+
+    // Function to check auth state
+    checkAuth: async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Auth check failed:', error);
+        return null;
+      }
+      console.log('Current session:', session);
+      return session;
+    }
+  };
+
+  console.log('🔧 Development utilities available:');
+  console.log('  window.supabaseDev.confirmEmail("user@example.com")');
+  console.log('  window.supabaseDev.checkAuth()');
+}

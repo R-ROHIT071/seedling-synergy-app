@@ -1,19 +1,20 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Sprout, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, Loader2, Sprout } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showResendButton, setShowResendButton] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, role } = useAuth();
+  const { signIn, confirmEmailForDev, forceConfirmEmail, role } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,13 +28,45 @@ const Login = () => {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+        duration: 8000
+      });
+
+      // If email confirmation error, show resend button
+      if (error.message.includes('confirmation link')) {
+        setShowResendButton(true);
+      }
     } else {
       toast({ title: "Welcome back!" });
       // Role-based redirect will happen after role is fetched
       setTimeout(() => {
         navigate("/dashboard");
       }, 500);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      toast({ title: "Error", description: "Please enter your email address first.", variant: "destructive" });
+      return;
+    }
+
+    const result = await confirmEmailForDev(email);
+    if (result.success) {
+      toast({
+        title: "Confirmation email sent!",
+        description: result.message,
+        duration: 5000
+      });
+    } else {
+      toast({
+        title: "Failed to resend",
+        description: result.error || "Could not resend confirmation email.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -67,6 +100,40 @@ const Login = () => {
             <Button className="w-full" size="lg" type="submit" disabled={loading}>
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</> : "Sign In"}
             </Button>
+
+            {showResendButton && (
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleResendConfirmation}
+                  disabled={loading}
+                >
+                  Resend Confirmation Email
+                </Button>
+
+                {import.meta.env.DEV && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={async () => {
+                      const result = await forceConfirmEmail(email);
+                      toast({
+                        title: result.success ? "Development Helper" : "Error",
+                        description: result.message || result.error,
+                        variant: result.success ? "default" : "destructive"
+                      });
+                    }}
+                    disabled={loading || !email}
+                  >
+                    🔧 Dev: Force Confirm Email
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">

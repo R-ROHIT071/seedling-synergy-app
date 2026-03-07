@@ -1,12 +1,13 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Sprout, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, Loader2, Sprout } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const getStrength = (pw: string) => {
   let s = 0;
@@ -54,8 +55,19 @@ const Signup = () => {
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Account created!", description: "You are now signed in." });
-      navigate("/dashboard");
+      // Check if user is already signed in (email confirmation disabled)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast({ title: "Account created!", description: "You are now signed in." });
+        navigate("/dashboard");
+      } else {
+        toast({
+          title: "Account created!",
+          description: "Please check your email and click the confirmation link to activate your account, then sign in.",
+          duration: 5000
+        });
+        navigate("/login");
+      }
     }
   };
 

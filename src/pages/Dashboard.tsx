@@ -1,15 +1,15 @@
-import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import AdminDashboard from "@/components/dashboards/AdminDashboard";
 import FarmerDashboard from "@/components/dashboards/FarmerDashboard";
 import VendorDashboard from "@/components/dashboards/VendorDashboard";
-import AdminDashboard from "@/components/dashboards/AdminDashboard";
 import PageLayout from "@/components/PageLayout";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { Navigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, roleLoading } = useAuth();
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

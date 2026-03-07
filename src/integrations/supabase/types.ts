@@ -46,45 +46,6 @@ export type Database = {
           },
         ]
       }
-      disease_reports: {
-        Row: {
-          confidence: number
-          created_at: string
-          crop_name: string
-          diagnosis: string
-          id: string
-          image_url: string | null
-          preventive_measures: string | null
-          severity: string
-          treatment: string | null
-          user_id: string
-        }
-        Insert: {
-          confidence?: number
-          created_at?: string
-          crop_name: string
-          diagnosis: string
-          id?: string
-          image_url?: string | null
-          preventive_measures?: string | null
-          severity?: string
-          treatment?: string | null
-          user_id: string
-        }
-        Update: {
-          confidence?: number
-          created_at?: string
-          crop_name?: string
-          diagnosis?: string
-          id?: string
-          image_url?: string | null
-          preventive_measures?: string | null
-          severity?: string
-          treatment?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       group_buy_participants: {
         Row: {
           created_at: string
@@ -494,6 +455,327 @@ export type Database = {
           user_id?: string
           verified_at?: string | null
           video_url?: string
+        }
+        Relationships: []
+      }
+      event_attendees: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          rsvp_status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          rsvp_status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          rsvp_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_sharing: {
+        Row: {
+          availability: Json | null
+          created_at: string
+          daily_rate: number | null
+          description: string
+          equipment_type: string
+          id: string
+          image_url: string | null
+          location: string | null
+          owner_id: string
+          title: string
+        }
+        Insert: {
+          availability?: Json | null
+          created_at?: string
+          daily_rate?: number | null
+          description: string
+          equipment_type: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          owner_id: string
+          title: string
+        }
+        Update: {
+          availability?: Json | null
+          created_at?: string
+          daily_rate?: number | null
+          description?: string
+          equipment_type?: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          owner_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      farmer_events: {
+        Row: {
+          coordinates: Json | null
+          created_at: string
+          current_attendees: number
+          description: string
+          event_date: string
+          event_type: string | null
+          id: string
+          is_free: boolean
+          location: string
+          max_attendees: number | null
+          organizer_id: string
+          title: string
+        }
+        Insert: {
+          coordinates?: Json | null
+          created_at?: string
+          current_attendees?: number
+          description: string
+          event_date: string
+          event_type?: string | null
+          id?: string
+          is_free?: boolean
+          location: string
+          max_attendees?: number | null
+          organizer_id: string
+          title: string
+        }
+        Update: {
+          coordinates?: Json | null
+          created_at?: string
+          current_attendees?: number
+          description?: string
+          event_date?: string
+          event_type?: string | null
+          id?: string
+          is_free?: boolean
+          location?: string
+          max_attendees?: number | null
+          organizer_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      forum_posts: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          forum_id: string
+          id: string
+          image_url: string | null
+          is_pinned: boolean
+          likes_count: number
+          replies_count: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          forum_id: string
+          id?: string
+          image_url?: string | null
+          is_pinned?: boolean
+          likes_count?: number
+          replies_count?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          forum_id?: string
+          id?: string
+          image_url?: string | null
+          is_pinned?: boolean
+          likes_count?: number
+          replies_count?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_posts_forum_id_fkey"
+            columns: ["forum_id"]
+            isOneToOne: false
+            referencedRelation: "forums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_replies: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          likes_count: number
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forums: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_pinned: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string | null
+          reply_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reply_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reply_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "forum_replies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      success_stories: {
+        Row: {
+          author_id: string
+          created_at: string
+          crop_type: string | null
+          id: string
+          images: string[] | null
+          is_featured: boolean
+          likes_count: number
+          location: string | null
+          profit_increase: number | null
+          story: string
+          title: string
+          views_count: number
+          yield_increase: number | null
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          crop_type?: string | null
+          id?: string
+          images?: string[] | null
+          is_featured?: boolean
+          likes_count?: number
+          location?: string | null
+          profit_increase?: number | null
+          story: string
+          title: string
+          views_count?: number
+          yield_increase?: number | null
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          crop_type?: string | null
+          id?: string
+          images?: string[] | null
+          is_featured?: boolean
+          likes_count?: number
+          location?: string | null
+          profit_increase?: number | null
+          story?: string
+          title?: string
+          views_count?: number
+          yield_increase?: number | null
         }
         Relationships: []
       }

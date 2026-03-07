@@ -1,12 +1,12 @@
-import { motion } from "framer-motion";
-import { Users, Clock, ShoppingBag, Loader2 } from "lucide-react";
+import PageLayout from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import PageLayout from "@/components/PageLayout";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
+import { Clock, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const defaultGroups = [
   { id: "1", title: "Hybrid Tomato Seeds", category: "Seeds", original_price: 850, group_price: 599, discount: 30, target_qty: 10, current_qty: 7, deadline: "2026-03-15", location: "Maharashtra, Karnataka", specs: "500g packet", image: null, creator_id: "" },
@@ -23,22 +23,39 @@ const GroupBuy = () => {
   const [filter, setFilter] = useState("All");
   const [groups, setGroups] = useState(defaultGroups);
   const [joining, setJoining] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchGroups = async () => {
       const { data } = await supabase.from("group_buys").select("*").order("created_at", { ascending: false });
-      if (data && data.length > 0) setGroups(data as any);
+      if (data && data.length > 0) setGroups(data);
     };
     fetchGroups();
   }, []);
+
+  useEffect(() => {
+    // if (user) {
+    //   const checkVerification = async () => {
+    //     const { data } = await supabase.from("verifications").select("status").eq("user_id", user.id).eq("type", "farmer").maybeSingle();
+    //     if (data && "status" in data) {
+    //       setVerified(data.status === "approved");
+    //     }
+    //   };
+    //   checkVerification();
+    // }
+  }, [user]);
 
   const filtered = filter === "All" ? groups : groups.filter((g) => g.category === filter);
 
   const handleJoin = async (groupId: string) => {
     if (!user) {
       toast({ title: "Please log in", description: "You need to be logged in to join a group buy.", variant: "destructive" });
+      return;
+    }
+    if (!verified) {
+      toast({ title: "Verification required", description: "Please verify your account to join group buys.", variant: "destructive" });
       return;
     }
     setJoining(groupId);
@@ -63,6 +80,11 @@ const GroupBuy = () => {
             <p className="text-muted-foreground mt-4 max-w-xl mx-auto">
               Join other farmers to buy seeds, fertilizers, and equipment at bulk discount prices.
             </p>
+            {!verified && user && (
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800">⚠️ Verification required to join group buys. <a href="/verify" className="underline">Verify now</a></p>
+              </div>
+            )}
           </motion.div>
 
           <div className="flex flex-wrap justify-center gap-2 mb-10">
@@ -78,6 +100,7 @@ const GroupBuy = () => {
               return (
                 <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
                   className="p-6 rounded-xl bg-card border border-border shadow-card hover:shadow-elevated transition-shadow">
+                  {item.image && <img src={item.image} alt={item.title} className="w-full h-32 object-cover rounded-md mb-3" />}
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground font-medium">{item.category}</span>
                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {daysLeft}d left</span>

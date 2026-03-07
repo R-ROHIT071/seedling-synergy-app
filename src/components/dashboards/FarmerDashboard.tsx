@@ -1,10 +1,9 @@
-import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingBag, Users, BookOpen, ShieldCheck, TrendingUp, Store, Package, Bug, Sprout, Sparkles, BarChart3, Cloud } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
+import { BarChart3, BookOpen, Cloud, Package, ShieldCheck, ShoppingBag, Sparkles, Sprout, Store, TrendingUp, Users } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 const FarmerDashboard = () => {
   const { user } = useAuth();
@@ -30,25 +29,25 @@ const FarmerDashboard = () => {
     fetchData();
   }, [user]);
 
-  const cards = [
+  const cards = useMemo(() => [
     { icon: ShoppingBag, label: "My Orders", value: stats.orders, color: "text-primary" },
     { icon: Users, label: "Group Buys", value: stats.groupBuys, color: "text-accent-foreground" },
     { icon: ShieldCheck, label: "Verifications", value: stats.verifications, color: "text-primary" },
-  ];
+  ], [stats]);
 
-  const quickLinks = [
+  const quickLinks = useMemo(() => [
     { to: "/marketplace", icon: Store, label: "Marketplace" },
     { to: "/orders", icon: Package, label: "My Orders" },
     { to: "/price-prediction", icon: TrendingUp, label: "Price Prediction" },
-    { to: "/crop-health", icon: Bug, label: "Crop Disease Detection" },
     { to: "/yield-prediction", icon: Sprout, label: "Yield Prediction" },
     { to: "/smart-recommendations", icon: Sparkles, label: "Smart Tips" },
     { to: "/advanced-analytics", icon: BarChart3, label: "Price Analytics" },
     { to: "/weather", icon: Cloud, label: "Weather Advisory" },
     { to: "/group-buy", icon: Users, label: "Join Group Buy" },
+    { to: "/community", icon: Users, label: "Community" },
     { to: "/verify", icon: ShieldCheck, label: "Upload Verification" },
     { to: "/learn", icon: BookOpen, label: "Learning Hub" },
-  ];
+  ], []);
 
   return (
     <div>
@@ -85,4 +84,4 @@ const FarmerDashboard = () => {
   );
 };
 
-export default FarmerDashboard;
+export default React.memo(FarmerDashboard);

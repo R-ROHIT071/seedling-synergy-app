@@ -1,28 +1,33 @@
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import Index from "./pages/Index";
-import PricePrediction from "./pages/PricePrediction";
-import GroupBuy from "./pages/GroupBuy";
-import Learn from "./pages/Learn";
-import Verify from "./pages/Verify";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Dashboard from "./pages/Dashboard";
-import Marketplace from "./pages/Marketplace";
-import Cart from "./pages/Cart";
-import Orders from "./pages/Orders";
-import NotificationSettings from "./pages/NotificationSettings";
-import CropHealth from "./pages/CropHealth";
-import YieldPrediction from "./pages/YieldPrediction";
-import SmartRecommendations from "./pages/SmartRecommendations";
-import AdvancedAnalytics from "./pages/AdvancedAnalytics";
-import Weather from "./pages/Weather";
-import NotFound from "./pages/NotFound";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ChatBot from "./components/ChatBot";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+const AdvancedAnalytics = lazy(() => import("./pages/AdvancedAnalytics"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Community = lazy(() => import("./pages/Community"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const GroupBuy = lazy(() => import("./pages/GroupBuy"));
+const Index = lazy(() => import("./pages/Index"));
+const Learn = lazy(() => import("./pages/Learn"));
+const Login = lazy(() => import("./pages/Login"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
+const Orders = lazy(() => import("./pages/Orders"));
+const PricePrediction = lazy(() => import("./pages/PricePrediction"));
+const Signup = lazy(() => import("./pages/Signup"));
+const SmartRecommendations = lazy(() => import("./pages/SmartRecommendations"));
+const Verify = lazy(() => import("./pages/Verify"));
+const VendorVerify = lazy(() => import("./pages/VendorVerify"));
+const Weather = lazy(() => import("./pages/Weather"));
+const YieldPrediction = lazy(() => import("./pages/YieldPrediction"));
 
 const queryClient = new QueryClient();
 
@@ -32,27 +37,31 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/price-prediction" element={<PricePrediction />} />
-            <Route path="/group-buy" element={<GroupBuy />} />
-            <Route path="/learn" element={<Learn />} />
-            <Route path="/verify" element={<Verify />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/notification-settings" element={<NotificationSettings />} />
-            <Route path="/crop-health" element={<CropHealth />} />
-            <Route path="/yield-prediction" element={<YieldPrediction />} />
-            <Route path="/smart-recommendations" element={<SmartRecommendations />} />
-            <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
-            <Route path="/weather" element={<Weather />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div>Loading...</div></div>}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/price-prediction" element={<PricePrediction />} />
+              <Route path="/group-buy" element={<GroupBuy />} />
+              <Route path="/learn" element={<Learn />} />
+              <Route path="/verify" element={<Verify />} />
+              <Route path="/vendor-verify" element={<ProtectedRoute allowedRoles={["vendor"]}><VendorVerify /></ProtectedRoute>} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/notification-settings" element={<NotificationSettings />} />
+              <Route path="/yield-prediction" element={<YieldPrediction />} />
+              <Route path="/smart-recommendations" element={<SmartRecommendations />} />
+              <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
+              <Route path="/weather" element={<Weather />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
           <ChatBot />
         </BrowserRouter>
       </TooltipProvider>

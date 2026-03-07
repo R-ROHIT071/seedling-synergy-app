@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Sprout, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/hooks/useAuth";
 import NotificationCenter from "@/components/NotificationCenter";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { AnimatePresence, motion } from "framer-motion";
+import { LogOut, Menu, Sprout, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-const navLinks = [
+const baseNavLinks = [
   { to: "/", label: "Home" },
   { to: "/marketplace", label: "Marketplace" },
   { to: "/price-prediction", label: "Prices" },
   { to: "/group-buy", label: "Group Buy" },
-  { to: "/crop-health", label: "Crop Health" },
+  { to: "/community", label: "Community" },
   { to: "/weather", label: "Weather" },
   { to: "/learn", label: "Learn" },
 ];
@@ -19,8 +19,18 @@ const navLinks = [
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const navLinks = useMemo(() => {
+    if (role === "admin") {
+      return [];
+    }
+    if (role === "vendor") {
+      return [];
+    }
+    return baseNavLinks;
+  }, [role]);
 
   const handleSignOut = async () => {
     await signOut();

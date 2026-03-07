@@ -1,13 +1,17 @@
-import { ReactNode } from "react";
-import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import NavBar from "@/components/NavBar";
+import { useAuth } from "@/hooks/useAuth";
+import { ReactNode } from "react";
 
-const PageLayout = ({ children }: { children: ReactNode }) => (
-  <div className="min-h-screen bg-background">
-    <NavBar />
-    <main className="pt-16">{children}</main>
-    <Footer />
-  </div>
-);
+const PageLayout = ({ children }: { children: ReactNode }) => {
+  const { role } = useAuth();
+  return (
+    <div className="min-h-screen bg-background">
+      <NavBar />
+      <main className="pt-16">{children}</main>
+      {role !== "admin" && <Footer />}
+    </div>
+  );
+};
 
 export default PageLayout;
