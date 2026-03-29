@@ -23,9 +23,11 @@ const GroupBuy = () => {
   const [filter, setFilter] = useState("All");
   const [groups, setGroups] = useState(defaultGroups);
   const [joining, setJoining] = useState<string | null>(null);
-  const [verified, setVerified] = useState(false);
+  const [verified] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+
 
   useEffect(() => {
     const fetchGroups = async () => {

@@ -39,6 +39,7 @@ const FarmerDashboard = () => {
     { to: "/marketplace", icon: Store, label: "Marketplace" },
     { to: "/orders", icon: Package, label: "My Orders" },
     { to: "/price-prediction", icon: TrendingUp, label: "Price Prediction" },
+    { to: "/mandi-prices", icon: BarChart3, label: "Mandi Prices" },
     { to: "/yield-prediction", icon: Sprout, label: "Yield Prediction" },
     { to: "/smart-recommendations", icon: Sparkles, label: "Smart Tips" },
     { to: "/advanced-analytics", icon: BarChart3, label: "Price Analytics" },

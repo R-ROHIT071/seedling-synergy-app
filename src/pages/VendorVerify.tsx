@@ -41,6 +41,8 @@ const VendorVerify = () => {
   const { toast } = useToast();
   const [form, setForm] = useState({ idNumber: "", businessName: "", businessType: "" });
 
+
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

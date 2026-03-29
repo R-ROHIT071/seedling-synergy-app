@@ -11,7 +11,62 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle, Loader2, Package, Plus, ShoppingBag, TrendingUp, Truck, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  stock: number;
+  category: string;
+  image: string | null;
+  vendor_id: string;
+  created_at: string;
+}
+
+interface Order {
+  id: string;
+  product_id: string;
+  quantity: number;
+  total: number;
+  status: string;
+  payment_status: string | null;
+  payment_method: string | null;
+  transaction_id: string | null;
+  shipping_address: any;
+  tracking_number: string | null;
+  delivery_date: string | null;
+  created_at: string;
+  products: { name: string; price: number; category: string; vendor_id: string };
+}
+
+interface GroupBuy {
+  id: string;
+  title: string;
+  description: string;
+  target_qty: number;
+  group_price: number;
+  original_price: number;
+  discount: number;
+  deadline: string;
+  category: string;
+  location: string | null;
+  specs: string | null;
+  current_qty: number;
+  image: string | null;
+  creator_id: string;
+  created_at: string;
+}
+
+interface GroupBuyParticipant {
+  id: string;
+  group_buy_id: string;
+  user_id: string;
+  quantity: number;
+  created_at: string;
+  users?: { email: string };
+}
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -22,14 +77,19 @@ const statusColors: Record<string, string> = {
 };
 
 const VendorDashboard = () => {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [products, setProducts] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [groupBuys, setGroupBuys] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [groupBuys, setGroupBuys] = useState<GroupBuy[]>([]);
+  const [groupBuyParticipants, setGroupBuyParticipants] = useState<Record<string, GroupBuyParticipant[]>>({});
+  const [selectedGroupBuy, setSelectedGroupBuy] = useState<GroupBuy | null>(null);
+  const [gbDetailsOpen, setGbDetailsOpen] = useState(false);
+  const [editGbOpen, setEditGbOpen] = useState(false);
+  const [editingGroupBuy, setEditingGroupBuy] = useState<GroupBuy | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form, setForm] = useState({ name: "", price: "", category: "Seeds", stock: "", description: "" });
   const [addOpen, setAddOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -50,24 +110,42 @@ const VendorDashboard = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [gbSelectedImage, setGbSelectedImage] = useState<File | null>(null);
 
-  const fetchData = async () => {
-    if (!user) return;
+  const fetchData = useCallback(async () => {
+    if (!user?.id) return;
     const [prodRes, orderRes, gbRes] = await Promise.all([
       supabase.from("products").select("*").eq("vendor_id", user.id).order("created_at", { ascending: false }),
       supabase.from("orders").select("*, products!inner(name, price, category, vendor_id)").eq("products.vendor_id", user.id).order("created_at", { ascending: false }),
       supabase.from("group_buys").select("*").eq("creator_id", user.id).order("created_at", { ascending: false }),
     ]);
-    setProducts(prodRes.data ?? []);
-    setOrders(orderRes.data ?? []);
-    setGroupBuys(gbRes.data ?? []);
+    setProducts(prodRes.data as Product[] ?? []);
+    setOrders(orderRes.data as Order[] ?? []);
+    setGroupBuys(gbRes.data as GroupBuy[] ?? []);
+
+    // Fetch participants for each group buy
+    if (gbRes.data) {
+      const participantsData: Record<string, GroupBuyParticipant[]> = {};
+      for (const gb of gbRes.data) {
+        const { data: participants } = await supabase
+          .from("group_buy_participants")
+          .select("*")
+          .eq("group_buy_id", gb.id);
+        participantsData[gb.id] = (participants ?? []).map(p => ({ ...p, users: { email: "Unknown" } }));
+      }
+      setGroupBuyParticipants(participantsData);
+    }
+
     setLoading(false);
-  };
+  }, [user?.id]);
+
+
+
+
 
   useEffect(() => { 
-    if (user) {
+    if (user?.id) {
       fetchData();
     }
-  }, [user]);
+  }, [user?.id, fetchData]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,15 +165,15 @@ const VendorDashboard = () => {
         }
       }
 
-      const { error } = await supabase.from("products").insert({
+      const { error, data } = await supabase.from("products").insert({
         name: form.name,
         price: parseFloat(form.price),
         category: form.category,
         stock: parseInt(form.stock) || 0,
         description: form.description,
-        image: imageUrl,
+        image: imageUrl as string | null || null,
         vendor_id: user.id,
-      });
+      }).select();
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
@@ -105,8 +183,9 @@ const VendorDashboard = () => {
         setAddOpen(false);
         fetchData();
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
     setAdding(false);
   };
@@ -116,7 +195,7 @@ const VendorDashboard = () => {
     if (!editingProduct) return;
     setAdding(true);
     try {
-      let imageUrl = editingProduct.image;
+      let imageUrl = editingProduct.image as string | null;
       if (selectedImage) {
         imageUrl = await uploadImage(selectedImage, 'products');
       }
@@ -128,7 +207,7 @@ const VendorDashboard = () => {
         stock: parseInt(form.stock) || 0,
         description: form.description,
         image: imageUrl,
-      }).eq("id", editingProduct.id);
+      }).eq("id", editingProduct.id as string);
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
@@ -139,13 +218,14 @@ const VendorDashboard = () => {
         setEditingProduct(null);
         fetchData();
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
     setAdding(false);
   };
 
-  const openEdit = (product: any) => {
+  const openEdit = (product: Product) => {
     setEditingProduct(product);
     setForm({
       name: product.name,
@@ -162,6 +242,85 @@ const VendorDashboard = () => {
     await supabase.from("products").delete().eq("id", id);
     toast({ title: "Product deleted" });
     fetchData();
+  };
+
+  const openEditGb = (groupBuy: GroupBuy) => {
+    setEditingGroupBuy(groupBuy);
+    setGbForm({
+      title: groupBuy.title,
+      description: groupBuy.description,
+      target_qty: groupBuy.target_qty.toString(),
+      group_price: groupBuy.group_price.toString(),
+      original_price: groupBuy.original_price.toString(),
+      discount: groupBuy.discount.toString(),
+      deadline: groupBuy.deadline.split('T')[0], // Format for date input
+      category: groupBuy.category,
+      location: groupBuy.location || "",
+      specs: groupBuy.specs || ""
+    });
+    setGbSelectedImage(null);
+    setEditGbOpen(true);
+  };
+
+  const handleEditGb = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGroupBuy) return;
+    setCreatingGb(true);
+    try {
+      let imageUrl = editingGroupBuy.image;
+      if (gbSelectedImage) {
+        imageUrl = await uploadImage(gbSelectedImage, 'group-buys');
+      }
+
+      const { error } = await supabase.from("group_buys").update({
+        title: gbForm.title,
+        description: gbForm.description,
+        target_qty: parseInt(gbForm.target_qty),
+        group_price: parseFloat(gbForm.group_price),
+        original_price: parseFloat(gbForm.original_price),
+        discount: parseInt(gbForm.discount),
+        deadline: gbForm.deadline,
+        category: gbForm.category,
+        location: gbForm.location || null,
+        specs: gbForm.specs || null,
+        image: imageUrl as string | null,
+      }).eq("id", editingGroupBuy.id);
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Group buy updated!" });
+        setGbForm({ 
+          title: "", 
+          description: "", 
+          target_qty: "", 
+          group_price: "",
+          original_price: "",
+          discount: "",
+          deadline: "",
+          category: "Seeds",
+          location: "",
+          specs: ""
+        });
+        setGbSelectedImage(null);
+        setEditGbOpen(false);
+        setEditingGroupBuy(null);
+        fetchData();
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+    setCreatingGb(false);
+  };
+
+  const handleDeleteGb = async (id: string) => {
+    const { error } = await supabase.from("group_buys").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error deleting group buy", variant: "destructive" });
+    } else {
+      toast({ title: "Group buy deleted" });
+      fetchData();
+    }
   };
 
   const uploadImage = async (file: File, bucket: string) => {
@@ -193,7 +352,7 @@ const VendorDashboard = () => {
         imageUrl = await uploadImage(gbSelectedImage, 'group-buys');
       }
 
-      const { error } = await supabase.from("group_buys").insert({
+      const { error, data } = await supabase.from("group_buys").insert({
         title: gbForm.title,
         description: gbForm.description,
         target_qty: parseInt(gbForm.target_qty),
@@ -207,7 +366,7 @@ const VendorDashboard = () => {
         current_qty: 0,
         image: imageUrl,
         creator_id: user?.id,
-      });
+      }).select();
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
@@ -235,11 +394,18 @@ const VendorDashboard = () => {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: newStatus })
+      .eq("id", orderId);
+
     if (error) {
-      toast({ title: "Error updating status", variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `Order marked as ${newStatus}` });
+      toast({ title: `Order ${newStatus}!` });
       fetchData();
     }
   };
@@ -306,6 +472,41 @@ const VendorDashboard = () => {
               </div>
               <Button type="submit" className="w-full" disabled={adding}>
                 {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Product"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={editGbOpen} onOpenChange={setEditGbOpen}>
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Edit Group Buy</DialogTitle></DialogHeader>
+            <form onSubmit={handleEditGb} className="space-y-3">
+              <div className="space-y-2"><Label>Title</Label><Input value={gbForm.title} onChange={(e) => setGbForm({ ...gbForm, title: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Description</Label><Textarea value={gbForm.description} onChange={(e) => setGbForm({ ...gbForm, description: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Target Quantity</Label><Input type="number" value={gbForm.target_qty} onChange={(e) => setGbForm({ ...gbForm, target_qty: e.target.value })} required /></div>
+                <div className="space-y-2"><Label>Group Price (₹)</Label><Input type="number" step="0.01" value={gbForm.group_price} onChange={(e) => setGbForm({ ...gbForm, group_price: e.target.value })} required /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Original Price (₹)</Label><Input type="number" step="0.01" value={gbForm.original_price} onChange={(e) => setGbForm({ ...gbForm, original_price: e.target.value })} required /></div>
+                <div className="space-y-2"><Label>Discount (%)</Label><Input type="number" value={gbForm.discount} onChange={(e) => setGbForm({ ...gbForm, discount: e.target.value })} required /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Deadline</Label><Input type="date" value={gbForm.deadline} onChange={(e) => setGbForm({ ...gbForm, deadline: e.target.value })} required /></div>
+                <div className="space-y-2"><Label>Category</Label>
+                  <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={gbForm.category} onChange={(e) => setGbForm({ ...gbForm, category: e.target.value })}>
+                    {["Seeds", "Fertilizer", "Equipment", "Pesticide"].map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2"><Label>Location</Label><Input value={gbForm.location} onChange={(e) => setGbForm({ ...gbForm, location: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Specifications</Label><Input value={gbForm.specs} onChange={(e) => setGbForm({ ...gbForm, specs: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Group Buy Image</Label>
+                <Input type="file" accept="image/*" onChange={(e) => setGbSelectedImage(e.target.files?.[0] || null)} />
+                {gbSelectedImage && <p className="text-sm text-muted-foreground">Selected: {gbSelectedImage.name}</p>}
+                {editingGroupBuy?.image && !gbSelectedImage && <p className="text-sm text-muted-foreground">Current image will be kept</p>}
+              </div>
+              <Button type="submit" className="w-full" disabled={creatingGb}>
+                {creatingGb ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Group Buy"}
               </Button>
             </form>
           </DialogContent>
@@ -402,23 +603,23 @@ const VendorDashboard = () => {
           ) : products.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">No products yet. Click "Add Product" to get started.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {products.map((p) => (
-                <div key={p.id} className="p-4 rounded-xl bg-card border border-border shadow-card">
-                  {p.image && <img src={p.image} alt={p.name} className="w-full h-32 object-cover rounded-md mb-3" />}
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-foreground">{p.name}</h3>
-                    <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">{p.category}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">{p.description}</p>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="text-lg font-bold text-primary">₹{p.price}</span>
-                      <span className="text-xs text-muted-foreground ml-2">Stock: {p.stock}</span>
+                <div key={p.id} className="p-3 rounded-lg bg-card border border-border shadow-sm">
+                  {p.image && <img src={p.image} alt={p.name} className="w-full h-24 object-cover rounded-md mb-2" />}
+                  <div className="space-y-1">
+                    <h3 className="font-medium text-foreground text-sm leading-tight">{p.name}</h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-sm font-bold text-primary">₹{p.price}</span>
+                        <span className="text-xs text-muted-foreground ml-1">({p.stock})</span>
+                      </div>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground">{p.category}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(p)}>Edit</Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(p.id)}>Delete</Button>
+                    <div className="flex gap-1 mt-2">
+                      <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openEdit(p)}>Edit</Button>
+                      <Button size="sm" variant="destructive" className="h-7 text-xs px-2" onClick={() => handleDelete(p.id)}>Del</Button>
                     </div>
                   </div>
                 </div>
@@ -467,23 +668,103 @@ const VendorDashboard = () => {
                 </form>
               </DialogContent>
             </Dialog>
+            <Dialog open={gbDetailsOpen} onOpenChange={setGbDetailsOpen}>
+              <DialogContent className="max-h-[80vh] overflow-y-auto max-w-2xl">
+                <DialogHeader><DialogTitle>Group Buy Details</DialogTitle></DialogHeader>
+                {selectedGroupBuy && (
+                  <div className="space-y-4">
+                    {selectedGroupBuy.image && (
+                      <img src={selectedGroupBuy.image} alt={selectedGroupBuy.title} className="w-full h-48 object-cover rounded-md" />
+                    )}
+                    <div>
+                      <h3 className="text-xl font-semibold">{selectedGroupBuy.title}</h3>
+                      <p className="text-muted-foreground mt-1">{selectedGroupBuy.description}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Pricing</p>
+                        <div className="text-sm">
+                          <p>Group Price: ₹{selectedGroupBuy.group_price}</p>
+                          <p>Original Price: ₹{selectedGroupBuy.original_price}</p>
+                          <p>Discount: {selectedGroupBuy.discount}%</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Progress</p>
+                        <div className="text-sm">
+                          <p>Target Quantity: {selectedGroupBuy.target_qty}</p>
+                          <p>Current Members: {groupBuyParticipants[selectedGroupBuy.id]?.length || 0}</p>
+                          <p>Progress: {Math.round(((groupBuyParticipants[selectedGroupBuy.id]?.length || 0) / selectedGroupBuy.target_qty) * 100)}%</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Additional Details</p>
+                      <div className="text-sm space-y-1">
+                        <p>Category: {selectedGroupBuy.category}</p>
+                        <p>Location: {selectedGroupBuy.location || 'Not specified'}</p>
+                        <p>Specifications: {selectedGroupBuy.specs || 'Not specified'}</p>
+                        <p>Deadline: {format(new Date(selectedGroupBuy.deadline), "dd MMM yyyy")}</p>
+                        <p>Created: {format(new Date(selectedGroupBuy.created_at), "dd MMM yyyy")}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Participants ({groupBuyParticipants[selectedGroupBuy.id]?.length || 0})</p>
+                      {groupBuyParticipants[selectedGroupBuy.id]?.length > 0 ? (
+                        <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                          {groupBuyParticipants[selectedGroupBuy.id].map((participant: any, index: number) => (
+                            <div key={participant.id} className="flex justify-between items-center py-1 text-sm">
+                              <span>{index + 1}. {participant.users?.email || 'Unknown user'}</span>
+                              <span>Qty: {participant.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No participants yet</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
           {loading ? (
             <div className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" /></div>
           ) : groupBuys.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">No group buys yet. Create one to get started.</div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {groupBuys.map((gb) => (
-                <div key={gb.id} className="p-4 rounded-xl bg-card border border-border shadow-card">
-                  {gb.image && <img src={gb.image} alt={gb.title} className="w-full h-32 object-cover rounded-md mb-3" />}
-                  <h3 className="font-semibold text-foreground">{gb.title}</h3>
-                  <p className="text-sm text-muted-foreground">{gb.description}</p>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-xs text-muted-foreground">Target Qty: {gb.target_qty}, Current: {gb.current_qty}</p>
-                    <Badge variant={gb.current_qty >= gb.target_qty ? "default" : "secondary"}>
-                      {gb.current_qty >= gb.target_qty ? "Active" : "Pending"}
-                    </Badge>
+                <div key={gb.id} className="p-3 rounded-lg bg-card border border-border shadow-sm">
+                  {gb.image && <img src={gb.image} alt={gb.title} className="w-full h-24 object-cover rounded-md mb-2" />}
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-medium text-foreground text-sm leading-tight">{gb.title}</h3>
+                      <Badge variant={gb.current_qty >= gb.target_qty ? "default" : "secondary"} className="text-xs px-1 py-0">
+                        {gb.current_qty >= gb.target_qty ? "Active" : "Pending"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{gb.description}</p>
+                    <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                      <div>Target: {gb.target_qty}</div>
+                      <div>Joined: {groupBuyParticipants[gb.id]?.length || 0}</div>
+                      <div>₹{gb.group_price}</div>
+                      <div>{gb.discount}% off</div>
+                    </div>
+                    <div className="flex gap-1 mt-2">
+                      <Button size="sm" variant="outline" className="h-7 text-xs px-2 flex-1" onClick={() => { setSelectedGroupBuy(gb); setGbDetailsOpen(true); }}>
+                        Details
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openEditGb(gb)}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="destructive" className="h-7 text-xs px-2" onClick={() => handleDeleteGb(gb.id)}>
+                        Del
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -10,6 +10,7 @@ const baseNavLinks = [
   { to: "/", label: "Home" },
   { to: "/marketplace", label: "Marketplace" },
   { to: "/price-prediction", label: "Prices" },
+  { to: "/mandi-prices", label: "Mandi Prices" },
   { to: "/group-buy", label: "Group Buy" },
   { to: "/community", label: "Community" },
   { to: "/weather", label: "Weather" },

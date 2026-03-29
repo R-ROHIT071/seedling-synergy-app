@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import PageLayout from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Navigate, useNavigate } from "react-router-dom";
-import { Trash2, Plus, Minus, Loader2, ShoppingBag, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { ArrowLeft, Loader2, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 
 interface CartItem {
   id: string;
@@ -35,6 +34,27 @@ const Cart = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [address, setAddress] = useState({ name: "", phone: "", street: "", city: "", state: "", pincode: "" });
   const [paymentMethod, setPaymentMethod] = useState("upi");
+
+  const logAction = async (actionType: string, entityType: string, entityId?: string, oldValues?: Record<string, unknown>, newValues?: Record<string, unknown>) => {
+    try {
+      await supabase.from("admin_logs").insert({
+        user_id: user?.id,
+        action_type: actionType,
+        entity_type: entityType,
+        entity_id: entityId || null,
+        old_values: oldValues || null,
+        new_values: newValues || null,
+        performed_by: user?.id,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          user_agent: navigator.userAgent,
+          role: 'farmer' // Assuming cart is used by farmers
+        }
+      });
+    } catch (error) {
+      console.error("Error logging action:", error);
+    }
+  };
 
   useEffect(() => {
     if (user) fetchCart();
@@ -82,7 +102,20 @@ const Cart = () => {
     const txnId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     for (const item of items) {
-      await supabase.from("orders").insert({
+      const { data } = await supabase.from("orders").insert({
+        user_id: user.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        total: item.product.price * item.quantity,
+        status: "confirmed",
+        payment_status: "paid",
+        payment_method: paymentMethod,
+        transaction_id: txnId,
+        shipping_address: address,
+      }).select();
+
+      // Log the order creation
+      await logAction('create', 'order', data?.[0]?.id, null, {
         user_id: user.id,
         product_id: item.product_id,
         quantity: item.quantity,

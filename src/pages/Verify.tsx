@@ -1,12 +1,12 @@
-import { motion } from "framer-motion";
-import { ShieldCheck, Upload, CheckCircle, Clock, Video, Award, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import PageLayout from "@/components/PageLayout";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
+import { Award, CheckCircle, Clock, Loader2, Upload, Video } from "lucide-react";
+import { useRef, useState } from "react";
 
 const steps = [
   { icon: Video, title: "Record Your Farm", description: "Take a short video tour of your farm showing crops and facilities." },
@@ -37,6 +37,27 @@ const Verify = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const logAction = async (actionType: string, entityType: string, entityId?: string, oldValues?: Record<string, unknown>, newValues?: Record<string, unknown>) => {
+    try {
+      await supabase.from("admin_logs").insert({
+        user_id: user?.id,
+        action_type: actionType,
+        entity_type: entityType,
+        entity_id: entityId || null,
+        old_values: oldValues || null,
+        new_values: newValues || null,
+        performed_by: user?.id,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          user_agent: navigator.userAgent,
+          role: 'farmer'
+        }
+      });
+    } catch (error) {
+      console.error("Error logging action:", error);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,6 +115,13 @@ const Verify = () => {
       toast({ title: "Uploaded! 🎉", description: "Your verification video has been submitted for review." });
       setSelectedFile(null);
       setUploadProgress(0);
+
+      // Log the action
+      await logAction("submit_verification", "verifications", user.id, null, {
+        user_id: user.id,
+        video_url: urlData.publicUrl,
+        type: 'farmer'
+      });
     }
   };
 

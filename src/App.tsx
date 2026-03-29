@@ -13,10 +13,12 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Community = lazy(() => import("./pages/Community"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const FAQ = lazy(() => import("./pages/FAQ"));
 const GroupBuy = lazy(() => import("./pages/GroupBuy"));
 const Index = lazy(() => import("./pages/Index"));
 const Learn = lazy(() => import("./pages/Learn"));
 const Login = lazy(() => import("./pages/Login"));
+const MandiPrices = lazy(() => import("./pages/MandiPrices"));
 const Marketplace = lazy(() => import("./pages/Marketplace"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
@@ -44,12 +46,14 @@ const App = () => (
               <Route path="/price-prediction" element={<PricePrediction />} />
               <Route path="/group-buy" element={<GroupBuy />} />
               <Route path="/learn" element={<Learn />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/verify" element={<Verify />} />
               <Route path="/vendor-verify" element={<ProtectedRoute allowedRoles={["vendor"]}><VendorVerify /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/mandi-prices" element={<MandiPrices />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/community" element={<Community />} />
               <Route path="/orders" element={<Orders />} />

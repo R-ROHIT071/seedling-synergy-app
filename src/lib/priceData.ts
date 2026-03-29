@@ -20,6 +20,27 @@ export const locations: { value: LocationKey; label: string }[] = [
   { value: "pune", label: "Pune" },
 ];
 
+// Mapping from location to MandiFilters
+const locationToMandiFilters: Record<LocationKey, { state: string; district: string }> = {
+  mumbai: { state: "Maharashtra", district: "Mumbai" },
+  delhi: { state: "Delhi", district: "Delhi" },
+  bangalore: { state: "Karnataka", district: "Bangalore" },
+  hyderabad: { state: "Telangana", district: "Hyderabad" },
+  pune: { state: "Maharashtra", district: "Pune" },
+};
+
+// Mapping from crop to Commodity
+const cropToCommodity: Record<CropKey, string> = {
+  tomato: "Tomato",
+  onion: "Onion",
+  potato: "Potato",
+  wheat: "Wheat",
+  rice: "Rice",
+  cotton: "Cotton",
+  sugarcane: "Sugarcane",
+  soybean: "Soybean",
+};
+
 export const historicalData: Record<CropKey, Record<LocationKey, number[]>> = {
   tomato: {
     mumbai: [22, 23, 24.5, 25, 26.8, 28, 27.5, 26, 25.5, 24, 23.5, 23, 22.5, 22, 21.5],
@@ -79,6 +100,8 @@ export const historicalData: Record<CropKey, Record<LocationKey, number[]>> = {
   },
 };
 
+import { buildMandiPriceForecast, MandiFilters } from "./mandiPrices";
+
 export interface PredictionResult {
   currentPrice: number;
   predictedPrice: number;
@@ -89,46 +112,91 @@ export interface PredictionResult {
   chartData: { day: string; price: number; type: "historical" | "predicted" }[];
 }
 
-export function predictPrice(crop: CropKey, location: LocationKey): PredictionResult {
-  const prices = historicalData[crop][location];
-  const currentPrice = prices[prices.length - 1];
-  const predictedPriceNum = currentPrice * (1 + (Math.random() * 0.3 - 0.1));
-  const priceChange = ((predictedPriceNum - currentPrice) / currentPrice) * 100;
-  const confidence = Math.floor(Math.random() * 20 + 75);
-  const bestTime = Math.floor(Math.random() * 7) + 1;
+export async function predictPrice(crop: CropKey, location: LocationKey): Promise<PredictionResult> {
+  const locationFilters = locationToMandiFilters[location];
+  const commodity = cropToCommodity[crop];
 
-  const positiveInsights = [
-    "Our AI predicts an upward trend due to increased demand and seasonal patterns. Consider holding your produce for better returns.",
-    "Market analysis shows growing demand in urban centers. Price appreciation is expected over the forecast period.",
-    "Supply chain data indicates tightening supply. This crop is expected to fetch premium prices in the coming days.",
-  ];
-  const negativeInsights = [
-    "Our AI predicts a slight decrease due to higher supply from neighboring regions. Consider selling soon to maximize returns.",
-    "Market data shows increased harvest volumes arriving. Selling within the next few days may help you get the best price.",
-    "Seasonal patterns suggest a temporary price correction. Strategic timing of your sale can minimize impact.",
-  ];
-
-  const insights = priceChange >= 0 ? positiveInsights : negativeInsights;
-  const insight = insights[Math.floor(Math.random() * insights.length)];
-
-  const chartData: { day: string; price: number; type: "historical" | "predicted" }[] = prices.map((p, i) => ({
-    day: `Day ${i + 1}`,
-    price: p,
-    type: "historical" as const,
-  }));
-  chartData.push({
-    day: "Predicted",
-    price: parseFloat(predictedPriceNum.toFixed(2)),
-    type: "predicted",
-  });
-
-  return {
-    currentPrice,
-    predictedPrice: parseFloat(predictedPriceNum.toFixed(2)),
-    priceChange: parseFloat(priceChange.toFixed(1)),
-    confidence,
-    bestTime,
-    insight,
-    chartData,
+  const filters: MandiFilters = {
+    ...locationFilters,
+    commodity: commodity,
   };
+
+  try {
+    const forecast = await buildMandiPriceForecast(filters);
+
+    const currentPrice = forecast.currentModalPrice;
+    const predictedPrice = forecast.bestDay.predictedModalPrice;
+    const priceChange = ((predictedPrice - currentPrice) / currentPrice) * 100;
+
+    // Calculate bestTime as the day number of bestDay
+    const bestTime = forecast.predictions.findIndex(p => p.date === forecast.bestDay.date) + 1;
+
+    const confidence = 85; // Fixed for now, could be calculated
+
+    const insight = forecast.recommendation;
+
+    // Build chartData from predictions
+    const chartData: { day: string; price: number; type: "historical" | "predicted" }[] = [
+      { day: "Today", price: currentPrice, type: "historical" },
+      ...forecast.predictions.map((p, i) => ({
+        day: p.day,
+        price: p.predictedModalPrice,
+        type: "predicted" as const,
+      })),
+    ];
+
+    return {
+      currentPrice,
+      predictedPrice,
+      priceChange: parseFloat(priceChange.toFixed(1)),
+      confidence,
+      bestTime,
+      insight,
+      chartData,
+    };
+  } catch (error) {
+    console.error("Failed to fetch mandi data, falling back to mock data", error);
+    // Fallback to mock data
+    const prices = historicalData[crop][location];
+    const currentPrice = prices[prices.length - 1];
+    const predictedPriceNum = currentPrice * (1 + (Math.random() * 0.3 - 0.1));
+    const priceChange = ((predictedPriceNum - currentPrice) / currentPrice) * 100;
+    const confidence = Math.floor(Math.random() * 20 + 75);
+    const bestTime = Math.floor(Math.random() * 7) + 1;
+
+    const positiveInsights = [
+      "Our AI predicts an upward trend due to increased demand and seasonal patterns. Consider holding your produce for better returns.",
+      "Market analysis shows growing demand in urban centers. Price appreciation is expected over the forecast period.",
+      "Supply chain data indicates tightening supply. This crop is expected to fetch premium prices in the coming days.",
+    ];
+    const negativeInsights = [
+      "Our AI predicts a slight decrease due to higher supply from neighboring regions. Consider selling soon to maximize returns.",
+      "Market data shows increased harvest volumes arriving. Selling within the next few days may help you get the best price.",
+      "Seasonal patterns suggest a temporary price correction. Strategic timing of your sale can minimize impact.",
+    ];
+
+    const insights = priceChange >= 0 ? positiveInsights : negativeInsights;
+    const insight = insights[Math.floor(Math.random() * insights.length)];
+
+    const chartData: { day: string; price: number; type: "historical" | "predicted" }[] = prices.map((p, i) => ({
+      day: `Day ${i + 1}`,
+      price: p,
+      type: "historical" as const,
+    }));
+    chartData.push({
+      day: "Predicted",
+      price: parseFloat(predictedPriceNum.toFixed(2)),
+      type: "predicted",
+    });
+
+    return {
+      currentPrice,
+      predictedPrice: parseFloat(predictedPriceNum.toFixed(2)),
+      priceChange: parseFloat(priceChange.toFixed(1)),
+      confidence,
+      bestTime,
+      insight,
+      chartData,
+    };
+  }
 }

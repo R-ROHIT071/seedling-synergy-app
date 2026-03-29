@@ -1,5 +1,5 @@
+import { Mail, MapPin, Phone, Sprout } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Sprout, Mail, Phone, MapPin } from "lucide-react";
 import NewsletterForm from "./NewsletterForm";
 
 const Footer = () => {
@@ -36,6 +36,7 @@ const Footer = () => {
             <div className="space-y-2 text-sm opacity-70">
               <a href="#" className="block hover:opacity-100 transition-opacity">About Us</a>
               <a href="#" className="block hover:opacity-100 transition-opacity">Careers</a>
+              <Link to="/faq" className="block hover:opacity-100 transition-opacity">FAQ</Link>
               <a href="#" className="block hover:opacity-100 transition-opacity">Privacy Policy</a>
               <a href="#" className="block hover:opacity-100 transition-opacity">Terms of Service</a>
             </div>

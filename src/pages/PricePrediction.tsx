@@ -1,52 +1,49 @@
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  TrendingUp,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Brain,
-  Zap,
-  Clock,
-  Target,
-  ChevronRight,
-  Loader2,
-  Lightbulb,
-  ShieldCheck,
-  LineChart as LineChartIcon,
-  Users,
-  Star,
-} from "lucide-react";
+import PageLayout from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import PageLayout from "@/components/PageLayout";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceDot,
-} from "recharts";
-import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  crops,
-  locations,
-  predictPrice,
-  type CropKey,
-  type LocationKey,
-  type PredictionResult,
-} from "@/lib/priceData";
 import { Progress } from "@/components/ui/progress";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    crops,
+    locations,
+    predictPrice,
+    type CropKey,
+    type LocationKey,
+    type PredictionResult,
+} from "@/lib/priceData";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    ArrowDownRight,
+    ArrowUpRight,
+    BarChart3,
+    Brain,
+    ChevronRight,
+    Clock,
+    Lightbulb,
+    LineChart as LineChartIcon,
+    Loader2,
+    Star,
+    Target,
+    TrendingUp,
+    Zap
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    CartesianGrid,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
+} from "recharts";
 
 /* ─── Typing animation hook ─── */
 const phrases = [
@@ -144,16 +141,20 @@ const PricePrediction = () => {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split("T")[0];
 
-  const handlePredict = useCallback(() => {
+  const handlePredict = useCallback(async () => {
     if (!crop || !location || !quantity || !forecastDate) return;
     setLoading(true);
     setResult(null);
-    setTimeout(() => {
-      const prediction = predictPrice(crop, location);
+    try {
+      const prediction = await predictPrice(crop, location);
       setResult(prediction);
+    } catch (error) {
+      console.error("Prediction failed", error);
+      // Could set an error state here
+    } finally {
       setLoading(false);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    }, 2000);
+    }
   }, [crop, location, quantity, forecastDate]);
 
   const formValid = crop && location && quantity && forecastDate;
