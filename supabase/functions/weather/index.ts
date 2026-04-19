@@ -7,12 +7,21 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     const { location, cropTypes } = await req.json();
     const OPENWEATHER_API_KEY = Deno.env.get("OPENWEATHER_API_KEY");
-    if (!OPENWEATHER_API_KEY) throw new Error("OPENWEATHER_API_KEY is not configured");
+    if (!OPENWEATHER_API_KEY) {
+      console.error("OPENWEATHER_API_KEY not configured");
+      return new Response(JSON.stringify({ error: "Weather service not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get coordinates for location
     const geoResponse = await fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location || "Delhi, India")}&limit=1&appid=${OPENWEATHER_API_KEY}`);

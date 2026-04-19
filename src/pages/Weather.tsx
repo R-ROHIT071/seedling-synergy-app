@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Cloud, Sun, Droplets, Wind, Loader2, AlertTriangle, Info, Thermometer, RefreshCw } from "lucide-react";
+import PageLayout from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import PageLayout from "@/components/PageLayout";
+import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
+import { AlertTriangle, Cloud, Droplets, Info, Loader2, RefreshCw, Sun, Thermometer, Wind } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 interface WeatherData {
@@ -44,13 +43,90 @@ const Weather = () => {
   const fetchWeather = async () => {
     setLoading(true);
     try {
-      const { data: res, error } = await supabase.functions.invoke("weather", {
-        body: { location, cropTypes: cropTypes.split(",").map((s) => s.trim()) },
+      // Call OpenWeather API directly from frontend
+      const locationQuery = location || "Delhi, India";
+
+      // Get coordinates
+      const geoResponse = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=48ba05804bd0e1314635da04368a7c7c`);
+      if (!geoResponse.ok) throw new Error("Failed to find location");
+      const geoData = await geoResponse.json();
+      if (!geoData.length) throw new Error("Location not found");
+
+      const { lat, lon } = geoData[0];
+
+      // Get current weather
+      const currentResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=48ba05804bd0e1314635da04368a7c7c&units=metric`);
+      if (!currentResponse.ok) throw new Error("Failed to fetch weather data");
+      const currentData = await currentResponse.json();
+
+      // Get forecast
+      const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=48ba05804bd0e1314635da04368a7c7c&units=metric`);
+      if (!forecastResponse.ok) throw new Error("Failed to fetch forecast data");
+      const forecastData = await forecastResponse.json();
+
+      // Process data
+      const current = {
+        temp: Math.round(currentData.main.temp),
+        humidity: currentData.main.humidity,
+        condition: currentData.weather[0].main,
+        wind_speed: Math.round(currentData.wind.speed * 3.6),
+        rainfall_mm: currentData.rain ? currentData.rain['1h'] || 0 : 0
+      };
+
+      // Process forecast
+      const forecast = [];
+      const dailyData = {};
+      forecastData.list.forEach(item => {
+        const date = new Date(item.dt * 1000).toISOString().split('T')[0];
+        if (!dailyData[date]) {
+          dailyData[date] = { temps: [], conditions: [], rain: [] };
+        }
+        dailyData[date].temps.push(item.main.temp);
+        dailyData[date].conditions.push(item.weather[0].main);
+        dailyData[date].rain.push(item.rain ? item.rain['3h'] || 0 : 0);
       });
-      if (error) throw error;
-      setData(res);
+
+      Object.keys(dailyData).slice(0, 7).forEach(date => {
+        const data = dailyData[date];
+        forecast.push({
+          day: new Date(date).toLocaleDateString('en-IN', { weekday: 'short' }),
+          temp_high: Math.round(Math.max(...data.temps)),
+          temp_low: Math.round(Math.min(...data.temps)),
+          condition: data.conditions[0],
+          rainfall_chance: data.rain.reduce((a, b) => a + b, 0) > 0 ? Math.min(100, Math.round(data.rain.reduce((a, b) => a + b, 0) * 10)) : 0,
+          humidity: Math.round(60)
+        });
+      });
+
+      // Generate alerts
+      const alerts = [];
+      if (current.temp > 35) alerts.push({ type: "warning", title: "Heat Alert", message: "High temperatures may affect crop growth." });
+      if (current.rainfall_mm > 10) alerts.push({ type: "advisory", title: "Heavy Rain", message: "Heavy rainfall detected." });
+      if (current.wind_speed > 30) alerts.push({ type: "warning", title: "Strong Winds", message: "High winds may damage crops." });
+
+      // Generate crop advice
+      const crops = cropTypes.split(",").map(s => s.trim().toLowerCase());
+      const crop_advice = crops.map(crop => {
+        let advice = "Monitor weather conditions regularly.";
+        let urgency = "low";
+        if (current.temp > 30) {
+          advice = "High temperatures detected. Increase irrigation.";
+          urgency = "medium";
+        }
+        return { crop: crop.charAt(0).toUpperCase() + crop.slice(1), advice, urgency };
+      });
+
+      const result = {
+        current,
+        forecast,
+        alerts,
+        crop_advice,
+        historical_pattern: "Monitor seasonal weather patterns for optimal farming."
+      };
+
+      setData(result);
     } catch (err: any) {
-      toast({ title: "Failed", description: err.message, variant: "destructive" });
+      toast({ title: "Failed to fetch weather", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
