@@ -161,7 +161,7 @@ CREATE POLICY "Admins can update resources" ON public.learning_resources FOR UPD
 
 CREATE TRIGGER update_learning_resources_updated_at BEFORE UPDATE ON public.learning_resources
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-return farmers;
+return farmers; 
 
 -- Newsletter subscribers
 CREATE TABLE public.newsletter_subscribers (
