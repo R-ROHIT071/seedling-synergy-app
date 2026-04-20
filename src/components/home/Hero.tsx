@@ -3,8 +3,10 @@ import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-farm.jpg";
+import { useState } from "react";
 
 const Hero = () => {
+  const [showDemoModal, setShowDemoModal] = useState(false);
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background image */}
@@ -67,6 +69,7 @@ const Hero = () => {
               size="lg"
               variant="outline"
               className="text-base px-8 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setShowDemoModal(true)}
             >
               <Play className="mr-2 h-5 w-5" />
               Watch Demo
@@ -97,7 +100,35 @@ const Hero = () => {
           </motion.div>
         </div>
       </div>
-    </section>
+              {/* Demo Video Modal */}
+          {showDemoModal && (
+            <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] p-4">
+              <div className="max-w-5xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl relative">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b">
+                  <h3 className="text-xl font-semibold text-gray-900">Krishi Mitra Demo</h3>
+                  <button
+                    onClick={() => setShowDemoModal(false)}
+                    className="text-4xl leading-none text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Video Player */}
+                <div className="aspect-video bg-black">
+                  <video
+                    controls
+                    autoPlay
+                    className="w-full h-full"
+                    src="/videos/demo-video.mp4"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </div>
+          )}</section>
   );
 };
 
